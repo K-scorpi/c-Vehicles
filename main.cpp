@@ -39,7 +39,7 @@ Truck::Truck(const string &brand, const string &model, int year, float price,
 
 void Truck::displayInfo() {
     Car::displayInfo();
-    cout << "weight: " << Weight << " tons" << endl;
+    cout << "weight: " << weight << " tons" << endl;
 }
 
 void Truck::accelerate() {
@@ -63,3 +63,25 @@ int main() {
 
     return 0;
 }
+/*
+int main() {
+    MemoryContainer memoryContainer;
+    SQLiteContainer sqliteContainer("cars.db");
+
+    Car sedan("Toyota", "Camry", 2022, 25000);
+    Car truck("Ford", "F-150", 2023, 35000); // Грузоподъемность 2.5 тонны
+
+    memoryContainer.addCar(sedan);
+    memoryContainer.addCar(truck);
+
+    sqliteContainer.addCar(sedan);
+    sqliteContainer.addCar(truck);
+
+    std::cout << "Cars in Memory Container:" << std::endl;
+    memoryContainer.displayCars();
+
+    std::cout << "\nCars in SQLite Container:" << std::endl;
+    sqliteContainer.displayCars();
+
+    return 0;
+}*/
