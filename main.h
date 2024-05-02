@@ -3,16 +3,17 @@
 
 #include <iostream>
 #include <string>
+using namespace std;
 
 class Car {
 protected:
-    std::string brand; // марка
-    std::string model; // модель
+    string brand; // марка
+    string model; // модель
     int year;          // год выпуска
     float price;       // цена
 
 public:
-    Car(const std::string &brand, const std::string &model, int year, float price);
+    Car(const string &brand, const string &model, int year, float price);
     virtual ~Car() {}
 
     virtual void displayInfo();
@@ -23,11 +24,11 @@ public:
 class PassengerCar : public Car {
 protected:
     int passengers; // количество пассажиров
-    std::string bodyType; // тип кузова
+    string bodyType; // тип кузова
 
 public:
-    PassengerCar(const std::string &brand, const std::string &model, int year, float price,
-                 int passengers, const std::string &bodyType);
+    PassengerCar(const string &brand, const string &model, int year, float price,
+                 int passengers, const string &bodyType);
     virtual ~PassengerCar() {}
 
     void displayInfo() override;
@@ -40,7 +41,7 @@ protected:
     float weight; // грузоподъемность
 
 public:
-    Truck(const std::string &brand, const std::string &model, int year, float price,
+    Truck(const string &brand, const string &model, int year, float price,
           float weight);
     virtual ~Truck() {}
 

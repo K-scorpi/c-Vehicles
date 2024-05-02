@@ -32,7 +32,6 @@ void PassengerCar::brake() {
     cout << "Passenger car is braking." << endl;
 }
 
-// Implementations for Truck class
 Truck::Truck(const string &brand, const string &model, int year, float price,
              float weight)
     : Car(brand, model, year, price), weight(weight) {}
@@ -63,25 +62,3 @@ int main() {
 
     return 0;
 }
-/*
-int main() {
-    MemoryContainer memoryContainer;
-    SQLiteContainer sqliteContainer("cars.db");
-
-    Car sedan("Toyota", "Camry", 2022, 25000);
-    Car truck("Ford", "F-150", 2023, 35000); // Грузоподъемность 2.5 тонны
-
-    memoryContainer.addCar(sedan);
-    memoryContainer.addCar(truck);
-
-    sqliteContainer.addCar(sedan);
-    sqliteContainer.addCar(truck);
-
-    std::cout << "Cars in Memory Container:" << std::endl;
-    memoryContainer.displayCars();
-
-    std::cout << "\nCars in SQLite Container:" << std::endl;
-    sqliteContainer.displayCars();
-
-    return 0;
-}*/
