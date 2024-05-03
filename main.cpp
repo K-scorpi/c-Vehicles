@@ -114,6 +114,6 @@ int main()
     {
         CarPark.AddCar(CarFactory(BodyType(rand()%4)));
     }
-    Iterator<CarPointer> *it = new DecoratorPrice(new DecoratorBrand(CarPark.GetIterator(), Brand::BMW), Price::Very_Low);
+    Iterator<CarPointer> *it = new DecoratorPrice(new DecoratorBrand(CarPark.GetIterator(), Brand::Skoda), Price::Medium);
     Task(it);
 };

@@ -20,66 +20,88 @@ class Iterator
         virtual Type GetCurrent() const = 0;
 };
 
-enum class BodyType : int {Sedan, Pickup, Coupe, Cabriolet};
+// Перечислимый тип для типов кузова автомобиля
+enum class BodyType : int { Sedan, Pickup, Coupe, Cabriolet };
 
-enum class Brand : int {Volvo, Mersedes, BMW, Skoda};
+// Перечислимый тип для марок автомобиля
+enum class Brand : int { Volvo, Mersedes, BMW, Skoda };
 
-enum class Price : int {Very_Low, Low, Medium, High, Very_High};
+// Перечислимый тип для ценовых категорий автомобиля
+enum class Price : int { Very_Low, Low, Medium, High, Very_High };
 
+// Класс-родитель Car
 class Car
 {
-    protected:
-        BodyType TypeOfCar;
-        Brand BrandOfCar;
-        Price PriceOfCar;
-        Car()
-        {
-            PriceOfCar = Price(rand()%5);
-            BrandOfCar = Brand(rand()%4);
-        };
-    public:
-        virtual BodyType GetTypeOfCar() const = 0;
-        Brand GetBrandOfCar() {return BrandOfCar;};
-        Price GetPriceOfCar() {return PriceOfCar;};
-        int GetProbegOfCar()
-        {
-            int probeg = rand()/10000;
-            return probeg;
-        };
+protected:
+    BodyType TypeOfCar;  // Тип кузова автомобиля
+    Brand BrandOfCar;    // Марка автомобиля
+    Price PriceOfCar;    // Ценовая категория автомобиля
+
+    // Конструктор по умолчанию
+    Car()
+    {
+        PriceOfCar = Price(rand() % 5);  // Случайная генерация ценовой категории
+        BrandOfCar = Brand(rand() % 4);  // Случайная генерация марки автомобиля
+    }
+
+public:
+    // Виртуальный метод для получения типа кузова автомобиля
+    virtual BodyType GetTypeOfCar() const = 0;
+
+    // Метод для получения марки автомобиля
+    Brand GetBrandOfCar() { return BrandOfCar; }
+
+    // Метод для получения ценовой категории автомобиля
+    Price GetPriceOfCar() { return PriceOfCar; }
+
+    // Метод для получения пробега автомобиля (случайная генерация)
+    int GetProbegOfCar()
+    {
+        int probeg = rand() / 10000;
+        return probeg;
+    }
 };
 
 typedef Car * CarPointer;
 
+// Класс Cabriolet, наследуемый от класса Car
 class Cabriolet : public Car
 {
-    public:
-        BodyType GetTypeOfCar() const {return BodyType::Cabriolet;}
+public:
+    BodyType GetTypeOfCar() const { return BodyType::Cabriolet; }
 };
 
+// Класс Coupe, наследуемый от класса Car
 class Coupe : public Car
 {
-    public:
-        BodyType GetTypeOfCar() const {return BodyType::Coupe;}
+public:
+    BodyType GetTypeOfCar() const { return BodyType::Coupe; }
 };
 
+// Класс Pickup, наследуемый от класса Car
 class Pickup : public Car
 {
-    public:
-        BodyType GetTypeOfCar() const {return BodyType::Pickup;}
+public:
+    BodyType GetTypeOfCar() const { return BodyType::Pickup; }
 };
 
+// Класс Sedan, наследуемый от класса Car
 class Sedan : public Car
 {
-    public:
-        BodyType GetTypeOfCar() const {return BodyType::Sedan;}
+public:
+    BodyType GetTypeOfCar() const { return BodyType::Sedan; }
 };
 
 class CarContainer
 {
-    public:
-        virtual void AddCar(CarPointer newcar) = 0;
-        virtual int GetCount() const =0;
+public:
+    // Виртуальный метод для добавления автомобиля в коллекцию
+    virtual void AddCar(CarPointer newcar) = 0;
+
+    // Виртуальный метод для получения количества автомобилей в коллекции
+    virtual int GetCount() const = 0;
 };
+
 
 class CarListIterator : public Iterator<CarPointer>
 {
@@ -246,7 +268,7 @@ class DecoratorType : public Decorator<CarPointer>
             }while(!It->IsDone() && It->GetCurrent()->GetTypeOfCar()!= TargetType);
         };
 };
-
+// ммм. Декоратор 
 class DecoratorProbeg : public Decorator<CarPointer>
 {
     private:
