@@ -1,64 +1,64 @@
-#include <iostream>
 #include "main.h"
-using namespace std;
+#include <random>
 
-//Car class
-Car::Car(const string &brand, const string &model, int year, float price)
-    : brand(brand), model(model), year(year), price(price) {}
-
-void Car::displayInfo() {
-    cout << "Brand: " << brand << endl;
-    cout << "Model: " << model << endl;
-    cout << "Year: " << year << endl;
-    cout << "Price: $" << price << endl;
+std::shared_ptr<Car> SportsCarFactory::createCar() const {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> yearDist(2000, 2022);
+    std::uniform_real_distribution<double> priceDist(50000, 150000);
+    std::uniform_real_distribution<double> speedDist(200, 300);
+    return std::make_shared<SportsCar>("Ferrari", "F8", yearDist(gen), priceDist(gen), speedDist(gen));
 }
 
-//PassengerCar class
-PassengerCar::PassengerCar(const string &brand, const string &model, int year, float price,
-                           int passengers, const string &bodyType)
-    : Car(brand, model, year, price), passengers(passengers), bodyType(bodyType) {}
-
-void PassengerCar::displayInfo() {
-    Car::displayInfo();
-    cout << "Passengers: " << passengers << endl;
-    cout << "Body Type: " << bodyType << endl;
+std::shared_ptr<Car> SUVFactory::createCar() const {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> yearDist(2000, 2022);
+    std::uniform_real_distribution<double> priceDist(35000, 85000);
+    std::uniform_real_distribution<double> clearanceDist(10, 20);
+    return std::make_shared<SUV>("Land Rover", "Defender", yearDist(gen), priceDist(gen), clearanceDist(gen));
 }
 
-void PassengerCar::accelerate() {
-    cout << "Passenger car is accelerating." << endl;
+void VectorCarContainer::addCar(std::shared_ptr<Car> car) {
+    cars.push_back(car);
 }
 
-void PassengerCar::brake() {
-    cout << "Passenger car is braking." << endl;
+std::unique_ptr<CarContainerIterator> VectorCarContainer::createIterator() const {
+    return std::make_unique<VectorCarContainerIterator>(cars);
 }
 
-Truck::Truck(const string &brand, const string &model, int year, float price,
-             float weight)
-    : Car(brand, model, year, price), weight(weight) {}
-
-void Truck::displayInfo() {
-    Car::displayInfo();
-    cout << "weight: " << weight << " tons" << endl;
+void ListCarContainer::addCar(std::shared_ptr<Car> car) {
+    cars.push_back(car);
 }
 
-void Truck::accelerate() {
-    cout << "Truck is accelerating." << endl;
+std::unique_ptr<CarContainerIterator> ListCarContainer::createIterator() const {
+    return std::make_unique<ListCarContainerIterator>(cars);
 }
 
-void Truck::brake() {
-    cout << "Truck is braking." << endl;
+void YearFilterDecorator::first() {
+    baseIterator->first();
+    while (!baseIterator->isDone() && baseIterator->current()->getYear() != filterYear) {
+        baseIterator->next();
+    }
+}
+
+void YearFilterDecorator::next() {
+    baseIterator->next();
+    while (!baseIterator->isDone() && baseIterator->current()->getYear() != filterYear) {
+        baseIterator->next();
+    }
 }
 
 int main() {
-    PassengerCar car1("Toyota", "Camry", 2022, 25000, 5, "sedan");
-    Truck truck1("Ford", "F-150", 2023, 35000, 2.5);
+    VectorCarContainer container;
+    SportsCarFactory factory;
+    container.addCar(factory.createCar());
+    container.addCar(factory.createCar());
 
-    car1.displayInfo();
-    cout << endl;
-    truck1.displayInfo();
-
-    car1.accelerate();
-    truck1.accelerate();
+    auto it = container.createIterator();
+    for (it->first(); !it->isDone(); it->next()) {
+        it->current()->display();
+    }
 
     return 0;
 }

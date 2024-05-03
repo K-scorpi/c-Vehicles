@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/melehinkirill/Desktop/РИ - 221050/2 курс/С++(3-4)/c-Vehicles",
+      "program": "/Users/melehinkirill/Desktop/РИ - 221050/2 курс/С++(3-4)/c-Vehicles/build/Debug/outDebug"
+    }
+  ]
+}
