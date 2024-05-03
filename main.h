@@ -1,162 +1,276 @@
-#ifndef MAIN_H
-#define MAIN_H
+#ifndef CARS_H
+#define CARS_H
 
 #include <iostream>
-#include <memory>
-#include <vector>
-#include <list>
 #include <string>
-#include <functional>
-#include <random>
+#include <vector>
 
-// Abstract Car class
-class Car {
-protected:
-    std::string brand;
-    std::string model;
-    int year;
-    double price;
+using namespace std;
 
-public:
-    Car(const std::string& brand, const std::string& model, int year, double price)
-        : brand(brand), model(model), year(year), price(price) {}
-    virtual ~Car() {}
-    virtual void drive() const = 0;
-    virtual void display() const {
-        std::cout << "Brand: " << brand << ", Model: " << model << ", Year: " << year << ", Price: $" << price << std::endl;
-    }
-    int getYear() const { return year; }
+template<class Type>
+class Iterator
+{
+    protected:
+        Iterator() {}
+    public:
+        virtual ~Iterator(){};
+        virtual void First() = 0 ;
+        virtual void Next() = 0;
+        virtual bool IsDone() const = 0;
+        virtual Type GetCurrent() const = 0;
 };
 
-class SportsCar : public Car {
-private:
-    double topSpeed;
-public:
-    SportsCar(const std::string& brand, const std::string& model, int year, double price, double topSpeed)
-        : Car(brand, model, year, price), topSpeed(topSpeed) {}
-    void drive() const override {
-        std::cout << "Driving the sports car at top speed of " << topSpeed << " km/h!" << std::endl;
-    }
-    void display() const override {
-        Car::display();
-        std::cout << "Top Speed: " << topSpeed << " km/h" << std::endl;
-    }
+enum class BodyType : int {Sedan, Pickup, Coupe, Cabriolet};
+
+enum class Brand : int {Volvo, Mersedes, BMW, Skoda};
+
+enum class Price : int {Very_Low, Low, Medium, High, Very_High};
+
+class Car
+{
+    protected:
+        BodyType TypeOfCar;
+        Brand BrandOfCar;
+        Price PriceOfCar;
+        Car()
+        {
+            PriceOfCar = Price(rand()%5);
+            BrandOfCar = Brand(rand()%4);
+        };
+    public:
+        virtual BodyType GetTypeOfCar() const = 0;
+        Brand GetBrandOfCar() {return BrandOfCar;};
+        Price GetPriceOfCar() {return PriceOfCar;};
+        int GetProbegOfCar()
+        {
+            int probeg = rand()/10000;
+            return probeg;
+        };
 };
 
-class SUV : public Car {
-private:
-    double groundClearance;
-public:
-    SUV(const std::string& brand, const std::string& model, int year, double price, double groundClearance)
-        : Car(brand, model, year, price), groundClearance(groundClearance) {}
-    void drive() const override {
-        std::cout << "Driving the SUV with a ground clearance of " << groundClearance << " inches!" << std::endl;
-    }
-    void display() const override {
-        Car::display();
-        std::cout << "Ground Clearance: " << groundClearance << " inches" << std::endl;
-    }
+typedef Car * CarPointer;
+
+class Cabriolet : public Car
+{
+    public:
+        BodyType GetTypeOfCar() const {return BodyType::Cabriolet;}
 };
 
-class CarFactory {
-public:
-    virtual ~CarFactory() {}
-    virtual std::shared_ptr<Car> createCar() const = 0;
+class Coupe : public Car
+{
+    public:
+        BodyType GetTypeOfCar() const {return BodyType::Coupe;}
 };
 
-class SportsCarFactory : public CarFactory {
-public:
-    std::shared_ptr<Car> createCar() const override;
+class Pickup : public Car
+{
+    public:
+        BodyType GetTypeOfCar() const {return BodyType::Pickup;}
 };
 
-class SUVFactory : public CarFactory {
-public:
-    std::shared_ptr<Car> createCar() const override;
+class Sedan : public Car
+{
+    public:
+        BodyType GetTypeOfCar() const {return BodyType::Sedan;}
 };
 
-class CarContainerIterator {
-public:
-    virtual ~CarContainerIterator() {}
-    virtual void first() = 0;
-    virtual void next() = 0;
-    virtual bool isDone() const = 0;
-    virtual std::shared_ptr<Car> current() const = 0;
+class CarContainer
+{
+    public:
+        virtual void AddCar(CarPointer newcar) = 0;
+        virtual int GetCount() const =0;
 };
 
-class CarContainer {
-public:
-    virtual ~CarContainer() {}
-    virtual void addCar(std::shared_ptr<Car> car) = 0;
-    virtual std::unique_ptr<CarContainerIterator> createIterator() const = 0;
+class CarListIterator : public Iterator<CarPointer>
+{
+    private:
+        const CarPointer *CarPark;
+        int Pos;
+        int Count;
+    public:
+        CarListIterator(const CarPointer *carpark, int count)
+        {
+            CarPark = carpark;
+            Count = count;
+            Pos = 0;
+        };
+        void First() { Pos = 0; }
+        void Next() {Pos++;}
+        bool IsDone() const {return Pos >= Count;}
+        CarPointer GetCurrent() const { return CarPark[Pos];}
 };
 
-class VectorCarContainer : public CarContainer {
-private:
-    std::vector<std::shared_ptr<Car>> cars;
-public:
-    void addCar(std::shared_ptr<Car> car) override;
-    std::unique_ptr<CarContainerIterator> createIterator() const override;
+class CarListContainer : public CarContainer
+{
+    private:
+        CarPointer * CarPark;
+        int CarCount;
+        int MaxSize;
+    public:
+        CarListContainer(int MaxSize);
+        virtual ~CarListContainer();
+        void AddCar(CarPointer newcar);
+        int GetCount() const {return CarCount;}
+        CarPointer GetByIndex(int index) const {return CarPark[index];}
+        Iterator<CarPointer> * GetIterator()
+        {
+            return new CarListIterator(CarPark, CarCount);
+        };
 };
 
-class IteratorDecorator : public CarContainerIterator {
-protected:
-    std::unique_ptr<CarContainerIterator> baseIterator;
-public:
-    IteratorDecorator(std::unique_ptr<CarContainerIterator> iterator) : baseIterator(std::move(iterator)) {}
-    void first() override { baseIterator->first(); }
-    void next() override { baseIterator->next(); }
-    bool isDone() const override { return baseIterator->isDone(); }
-    std::shared_ptr<Car> current() const override { return baseIterator->current(); }
+class CarVectorIterator : public Iterator<CarPointer>
+{
+    private:
+        const vector<CarPointer> * CarPark;
+        vector<CarPointer>::const_iterator it;
+    public:
+        CarVectorIterator( const vector<CarPointer> * carpark)
+        {
+            CarPark = carpark;
+            it = CarPark->begin();
+        };
+        void First() { it = CarPark->begin();}
+        void Next() {it++;}
+        bool IsDone() const {return it == CarPark->end();}
+        CarPointer GetCurrent() const {return *it;}
+
 };
 
-class YearFilterDecorator : public IteratorDecorator {
-    int filterYear;
-public:
-    YearFilterDecorator(std::unique_ptr<CarContainerIterator> iterator, int year)
-        : IteratorDecorator(std::move(iterator)), filterYear(year) {}
-    void first() override;
-    void next() override;
+class CarVectorContainer : public CarContainer
+{
+    private:
+        vector<CarPointer> CarPark;
+    public:
+        void AddCar(CarPointer newcar) {CarPark.push_back(newcar);}
+        int GetCount() const {return CarPark.size();}
+        Iterator<CarPointer> * GetIterator()
+        {
+            return new CarVectorIterator(&CarPark);
+        };
 };
 
-class ListCarContainer : public CarContainer {
-private:
-    std::list<std::shared_ptr<Car>> cars;
-public:
-    void addCar(std::shared_ptr<Car> car) override;
-    std::unique_ptr<CarContainerIterator> createIterator() const override;
+template<class Type>
+class Decorator : public Iterator<Type>
+{
+    protected:
+        Iterator<Type> *It;
+    public:
+        Decorator (Iterator<Type> *it)
+        {
+            It = it;
+        }
+        virtual ~Decorator() {delete It;}
+        void First() {It->First();}
+        void Next() {It->Next();}
+        bool IsDone() const {return It->IsDone();}
+        Type GetCurrent() const { return It->GetCurrent(); }
 };
 
-class VectorCarContainerIterator : public CarContainerIterator {
-private:
-    const std::vector<std::shared_ptr<Car>>& cars;  // Ссылка на вектор автомобилей
-    std::vector<std::shared_ptr<Car>>::const_iterator currentIterator;
-    std::vector<std::shared_ptr<Car>>::const_iterator end;
+class DecoratorBrand : public Decorator<CarPointer>
+{
+    private:
+        Brand TargetBrand;
+    public:
+        DecoratorBrand(Iterator<CarPointer> *it, Brand targetbrand) : Decorator(it)
+        {
+            TargetBrand = targetbrand;
+        };
+        void First()
+        {
+            It->First();
+            while(!It->IsDone() && It->GetCurrent()->GetBrandOfCar() != TargetBrand)
+            {
+                It->Next();
+            }
+        };
+        void Next()
+        {
+            do
+            {
+                It->Next();
 
-public:
-    VectorCarContainerIterator(const std::vector<std::shared_ptr<Car>>& cars) 
-        : cars(cars), currentIterator(cars.begin()), end(cars.end()) {}
-
-    void first() override { currentIterator = cars.begin(); } // Используем begin от вектора
-    void next() override { if (currentIterator != end) ++currentIterator; }
-    bool isDone() const override { return currentIterator == end; }
-    std::shared_ptr<Car> current() const override { return (currentIterator != end) ? *currentIterator : nullptr; }
+            }while(!It->IsDone() && It->GetCurrent()->GetBrandOfCar()!= TargetBrand);
+        };
 };
 
+class DecoratorPrice : public Decorator<CarPointer>
+{
+    private:
+        Price TargetPrice;
+    public:
+        DecoratorPrice(Iterator<CarPointer> *it, Price targetprice) : Decorator(it)
+        {
+            TargetPrice = targetprice;
+        };
+        void First()
+        {
+            It->First();
+            while(!It->IsDone() && It-> GetCurrent()->GetPriceOfCar() != TargetPrice)
+            {
+                It->Next();
+            }
+        };
+        void Next()
+        {
+            do
+            {
+                It->Next();
 
-class ListCarContainerIterator : public CarContainerIterator {
-private:
-    const std::list<std::shared_ptr<Car>>& cars;  // Ссылка на список автомобилей
-    std::list<std::shared_ptr<Car>>::const_iterator currentIterator;
-    std::list<std::shared_ptr<Car>>::const_iterator end;
-
-public:
-    ListCarContainerIterator(const std::list<std::shared_ptr<Car>>& cars) 
-        : cars(cars), currentIterator(cars.begin()), end(cars.end()) {}
-
-    void first() override { currentIterator = cars.begin(); } // Используем begin от списка
-    void next() override { if (currentIterator != end) ++currentIterator; }
-    bool isDone() const override { return currentIterator == end; }
-    std::shared_ptr<Car> current() const override { return (currentIterator != end) ? *currentIterator : nullptr; }
+            }while(!It->IsDone() && It->GetCurrent()->GetPriceOfCar()!= TargetPrice);
+        };
 };
 
-#endif // MAIN_H
+class DecoratorType : public Decorator<CarPointer>
+{
+    private:
+        BodyType TargetType;
+    public:
+        DecoratorType(Iterator<CarPointer> *it, BodyType targettype) : Decorator(it)
+        {
+            TargetType = targettype;
+        };
+        void First()
+        {
+            It->First();
+            while(!It->IsDone() && It->GetCurrent()->GetTypeOfCar() != TargetType)
+            {
+                It->Next();
+            }
+        };
+        void Next()
+        {
+            do
+            {
+                It->Next();
+
+            }while(!It->IsDone() && It->GetCurrent()->GetTypeOfCar()!= TargetType);
+        };
+};
+
+class DecoratorProbeg : public Decorator<CarPointer>
+{
+    private:
+        int TargetProbeg;
+    public:
+        DecoratorProbeg(Iterator<CarPointer> *it, int targetprobeg) : Decorator(it)
+        {
+            TargetProbeg = targetprobeg;
+        };
+        void First()
+        {
+            It->First();
+            while(!It->IsDone() && It-> GetCurrent()->GetProbegOfCar() > TargetProbeg)
+            {
+                It->Next();
+            }
+        };
+        void Next()
+        {
+            do
+            {
+                It->Next();
+
+            }while(!It->IsDone() && It->GetCurrent()->GetProbegOfCar() > TargetProbeg);
+        };
+};
+#endif CARS_H

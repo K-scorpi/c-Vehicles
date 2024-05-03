@@ -1,64 +1,119 @@
+#include <iostream>
+#include <vector>
+#include <list>
 #include "main.h"
-#include <random>
 
-std::shared_ptr<Car> SportsCarFactory::createCar() const {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> yearDist(2000, 2022);
-    std::uniform_real_distribution<double> priceDist(50000, 150000);
-    std::uniform_real_distribution<double> speedDist(200, 300);
-    return std::make_shared<SportsCar>("Ferrari", "F8", yearDist(gen), priceDist(gen), speedDist(gen));
+using namespace std;
+
+void CarListContainer::AddCar(CarPointer newcar)
+{
+    CarPark[CarCount] = newcar;
+    CarCount++;
 }
 
-std::shared_ptr<Car> SUVFactory::createCar() const {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> yearDist(2000, 2022);
-    std::uniform_real_distribution<double> priceDist(35000, 85000);
-    std::uniform_real_distribution<double> clearanceDist(10, 20);
-    return std::make_shared<SUV>("Land Rover", "Defender", yearDist(gen), priceDist(gen), clearanceDist(gen));
-}
+CarListContainer::CarListContainer(int maxsize)
+{
+    CarPark = new CarPointer[maxsize];
+    for (int i=0; i<maxsize; i++)
+    {
+        CarPark[i] = NULL;
+    };
+    CarCount = 0;
+    MaxSize = maxsize;
+};
 
-void VectorCarContainer::addCar(std::shared_ptr<Car> car) {
-    cars.push_back(car);
-}
+CarListContainer::~CarListContainer()
+{
+    for (int i=0; i<MaxSize; i++)
+    {
+        if (CarPark[i] != NULL)
+        {
+            delete CarPark[i];
+            CarPark[i] = NULL;
+        };
+    };
+    delete[] CarPark;
+};
 
-std::unique_ptr<CarContainerIterator> VectorCarContainer::createIterator() const {
-    return std::make_unique<VectorCarContainerIterator>(cars);
-}
+string PrintBrand(const Brand brand)
+{
+    switch (brand)
+    {
+        case Brand::Volvo: return "ВОЛЬВО";
+        case Brand::Mersedes: return "МЕРСЕДЕС";
+        case Brand::BMW: return "BMW";
+        case Brand::Skoda: return "ШКОДА";
+    };
+};
 
-void ListCarContainer::addCar(std::shared_ptr<Car> car) {
-    cars.push_back(car);
-}
+string PrintBodyType(BodyType type)
+{
+    switch(type)
+    {
+        case BodyType::Sedan: return "СЕДАН";
+        case BodyType::Pickup: return "ПИКАП";
+        case BodyType::Coupe: return "КУПЕ";
+        case BodyType::Cabriolet: return "КАБРИОЛЕТ";
+    };
+};
 
-std::unique_ptr<CarContainerIterator> ListCarContainer::createIterator() const {
-    return std::make_unique<ListCarContainerIterator>(cars);
-}
+string PrintPrice(Price price)
+{
+    switch(price)
+    {
+        case Price::Very_Low: return "ОЧЕНЬ ДЕШЕВАЯ";
+        case Price::Low: return "ДЕШЕВАЯ";
+        case Price::Medium: return "СРЕДНЯЯ ПО РЫНКУ";
+        case Price::High: return "ДОРОГО";
+        case Price::Very_High: return "ОЧЕНЬ ДОРОГО";
+    };
+};
 
-void YearFilterDecorator::first() {
-    baseIterator->first();
-    while (!baseIterator->isDone() && baseIterator->current()->getYear() != filterYear) {
-        baseIterator->next();
+void Task(Iterator<CarPointer> *it)
+{
+    for (it->First(); !it->IsDone(); it->Next())
+    {
+        const CarPointer currentcar = it->GetCurrent();
+        cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~" << "\n";
+        cout << "ХАРАКТЕРИСТИКИ МАШИНЫ:" << "\n";
+        cout << "- Производитель: " << PrintBrand(currentcar->GetBrandOfCar()) << "\n";
+        cout << "- Тип кузова: " << PrintBodyType(currentcar->GetTypeOfCar()) << "\n";
+        cout << "- Пробег: " << currentcar->GetProbegOfCar() << " км" <<"\n";
+        cout << "- Стоимость: " << PrintPrice(currentcar->GetPriceOfCar()) << "\n";
     }
 }
 
-void YearFilterDecorator::next() {
-    baseIterator->next();
-    while (!baseIterator->isDone() && baseIterator->current()->getYear() != filterYear) {
-        baseIterator->next();
+Car *CarFactory(BodyType newcar)
+{
+    switch(newcar)
+    {
+        case BodyType::Sedan: return new Sedan;
+        case BodyType::Pickup: return new Pickup;
+        case BodyType::Coupe: return new Coupe;
+        case BodyType::Cabriolet: return new Cabriolet;
     }
 }
-
-int main() {
-    VectorCarContainer container;
-    SportsCarFactory factory;
-    container.addCar(factory.createCar());
-    container.addCar(factory.createCar());
-
-    auto it = container.createIterator();
-    for (it->first(); !it->isDone(); it->next()) {
-        it->current()->display();
+int main()
+{
+    srand(time(NULL));
+    //CarListContainer CarPark(100);
+    CarVectorContainer CarPark;
+    /*
+    for (int i = 0; i<15; i++)
+    {
+        CarPark.AddCar(new Sedan);
+    };
+    for (int i = 0; i<15; i++ )
+    {
+        CarPark.AddCar(new Cabriolet);
     }
-
-    return 0;
-}
+    */
+    int random_cars = random()%(200-15+1)+1;
+    cout << "Создаем " << random_cars << " машин" << "\n"; 
+    for (int i=0; i<random_cars; i++)
+    {
+        CarPark.AddCar(CarFactory(BodyType(rand()%4)));
+    }
+    Iterator<CarPointer> *it = new DecoratorPrice(new DecoratorBrand(CarPark.GetIterator(), Brand::BMW), Price::Very_Low);
+    Task(it);
+};
