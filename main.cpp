@@ -73,7 +73,7 @@ Car* CarFactory(const BodyType type) {
 // Class methods for managing car database
 void DBCarContainer::ClearDB() {
     char *errmsg;
-    if (sqlite3_exec(DB, "DELETE FROM Cars", NULL, NULL, &errmsg) != SQLITE_OK) {
+    if (sqlite3_exec(db, "DELETE FROM Cars", NULL, NULL, &errmsg) != SQLITE_OK) {
         cerr << "Error clearing database: " << errmsg << endl;
         sqlite3_free(errmsg);
     }
@@ -82,8 +82,8 @@ void DBCarContainer::ClearDB() {
 void DBCarContainer::AddCar(CarPointer newCar) {
     sqlite3_stmt* stmt;
     string sql = "INSERT INTO Cars (BodyType, Brand, Price, Probeg) VALUES (?, ?, ?, ?);";
-    if (sqlite3_prepare_v2(DB, sql.c_str(), -1, &stmt, NULL) != SQLITE_OK) {
-        cerr << "SQL error: " << sqlite3_errmsg(DB) << endl;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, NULL) != SQLITE_OK) {
+        cerr << "SQL error: " << sqlite3_errmsg(db) << endl;
         return;
     }
 
@@ -95,7 +95,7 @@ void DBCarContainer::AddCar(CarPointer newCar) {
 
     // Execute and finalize statement
     if (sqlite3_step(stmt) != SQLITE_DONE) {
-        cerr << "Insert failed: " << sqlite3_errmsg(DB) << endl;
+        cerr << "Insert failed: " << sqlite3_errmsg(db) << endl;
     }
     sqlite3_finalize(stmt);
 }
@@ -103,8 +103,8 @@ void DBCarContainer::AddCar(CarPointer newCar) {
 // Implementation for DBCarContainerIterator methods
 void DBCarContainerIterator::First() {
     sqlite3_stmt *stmt;
-    if (sqlite3_prepare_v2(DB, "SELECT ID FROM Cars ORDER BY ID ASC LIMIT 1", -1, &stmt, nullptr) == SQLITE_OK && sqlite3_step(stmt) == SQLITE_ROW) {
-        CurrentId = sqlite3_column_int(stmt, 0);
+    if (sqlite3_prepare_v2(db, "SELECT ID FROM Cars ORDER BY ID ASC LIMIT 1", -1, &stmt, nullptr) == SQLITE_OK && sqlite3_step(stmt) == SQLITE_ROW) {
+        currentId = sqlite3_column_int(stmt, 0);
     }
     sqlite3_finalize(stmt);
 };
@@ -112,7 +112,7 @@ void DBCarContainerIterator::First() {
 int DBCarContainerIterator::GetCount()
 {
     sqlite3_stmt* stmt;
-    int result = sqlite3_prepare_v2(DB, "SELECT COUNT(*) FROM Cars", -1, &stmt, 0);
+    int result = sqlite3_prepare_v2(db, "SELECT COUNT(*) FROM Cars", -1, &stmt, 0);
     result = sqlite3_step(stmt);
     int count = sqlite3_column_int(stmt, 0);
     sqlite3_finalize(stmt);
@@ -123,8 +123,8 @@ string DBCarContainerIterator::GetBrand()
 {
     sqlite3_stmt* stmt;
     const char *sql_brand = "SELECT Brand FROM Cars WHERE ID = ?;";
-    int rc = sqlite3_prepare_v2(DB, sql_brand, -1, &stmt, nullptr);
-    sqlite3_bind_int(stmt, 1, CurrentId);
+    int rc = sqlite3_prepare_v2(db, sql_brand, -1, &stmt, nullptr);
+    sqlite3_bind_int(stmt, 1, currentId);
     rc = sqlite3_step(stmt);
     string OurBrand = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
     sqlite3_finalize(stmt);
@@ -135,8 +135,8 @@ string DBCarContainerIterator::GetType()
 {
     sqlite3_stmt* stmt;
     const char *sql_type = "SELECT BodyType FROM Cars WHERE ID = ?;";
-    int rc = sqlite3_prepare_v2(DB, sql_type, -1, &stmt, nullptr);
-    sqlite3_bind_int(stmt, 1, CurrentId);
+    int rc = sqlite3_prepare_v2(db, sql_type, -1, &stmt, nullptr);
+    sqlite3_bind_int(stmt, 1, currentId);
     rc = sqlite3_step(stmt);
     string OurType = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
     sqlite3_finalize(stmt);
@@ -147,8 +147,8 @@ int DBCarContainerIterator::GetProbeg()
 {
     sqlite3_stmt* stmt;
     const char *sql_probeg = "SELECT Probeg FROM Cars WHERE ID = ?;";
-    int rc = sqlite3_prepare_v2(DB, sql_probeg, -1, &stmt, nullptr);
-    sqlite3_bind_int(stmt, 1, CurrentId);
+    int rc = sqlite3_prepare_v2(db, sql_probeg, -1, &stmt, nullptr);
+    sqlite3_bind_int(stmt, 1, currentId);
     rc = sqlite3_step(stmt);
     int OurProbeg = sqlite3_column_int(stmt, 0);
     sqlite3_finalize(stmt);
@@ -159,8 +159,8 @@ string DBCarContainerIterator::GetPrice()
 {
     sqlite3_stmt* stmt;
     const char *sql_price = "SELECT Price FROM Cars WHERE ID = ?;";
-    int rc = sqlite3_prepare_v2(DB, sql_price, -1, &stmt, nullptr);
-    sqlite3_bind_int(stmt, 1, CurrentId);
+    int rc = sqlite3_prepare_v2(db, sql_price, -1, &stmt, nullptr);
+    sqlite3_bind_int(stmt, 1, currentId);
     rc = sqlite3_step(stmt);
     string OurPrice = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
     sqlite3_finalize(stmt);
