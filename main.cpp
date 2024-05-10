@@ -193,6 +193,7 @@ int main()
         check_brand.Find("ВОЛЬВО");
         if (check_brand.GetCorrect() == true)
         {
+            cout << "~~~~~~~~~~~~~~~~~~~~~~~~~" << "\n";
             cout << "Тип машины: " << it.GetType() << "\n";
             cout << "Бренд: " << it.GetBrand() << "\n";
             cout << "Стоимость: " << it.GetPrice() << "\n";
