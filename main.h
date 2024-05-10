@@ -7,7 +7,7 @@ using namespace std;
 
 //перечисления параметров
 enum class BodyType : int {Sedan, Pickup, Coupe, Cabriolet};
-enum class Brand : int {Volvo, Mersedes, BMW, Skoda};
+enum class Brand : int {Volvo, Mercedes, BMW, Skoda};
 enum class Price : int {Very_Low, Low, Medium, High, Very_High};
 //общий класс
 class Car
@@ -103,4 +103,4 @@ class Decorator
         };
         bool GetCorrect() {return IsCorrect;}
 };
-#endif Cars_SQL_H
+#endif // Cars_SQL_H

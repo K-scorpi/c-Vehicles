@@ -1,117 +1,111 @@
 #include <iostream>
 #include <string>
+#include <cstdlib>
 #include "sqlite3.h"
 #include "main.h"
 
 using namespace std;
 
-// определение классов
-class Cabriolet : public Car
-{
-    public:
-        BodyType GetTypeOfCar() const {return BodyType::Cabriolet;}
+// Define concrete car types by extending the Car base class
+class Cabriolet : public Car {
+public:
+    BodyType GetTypeOfCar() const override { return BodyType::Cabriolet; }
 };
 
-class Coupe : public Car
-{
-    public:
-        BodyType GetTypeOfCar() const {return BodyType::Coupe;}
+class Coupe : public Car {
+public:
+    BodyType GetTypeOfCar() const override { return BodyType::Coupe; }
 };
 
-class Pickup : public Car
-{
-    public:
-        BodyType GetTypeOfCar() const {return BodyType::Pickup;}
+class Pickup : public Car {
+public:
+    BodyType GetTypeOfCar() const override { return BodyType::Pickup; }
 };
 
-class Sedan : public Car
-{
-    public:
-        BodyType GetTypeOfCar() const {return BodyType::Sedan;}
+class Sedan : public Car {
+public:
+    BodyType GetTypeOfCar() const override { return BodyType::Sedan; }
 };
 
-//prints
-string PrintBrand(const Brand brand)
-{
-    switch (brand)
-    {
+// Functions to print enums in a human-readable format
+string PrintBrand(const Brand brand) {
+    switch (brand) {
         case Brand::Volvo: return "ВОЛЬВО";
-        case Brand::Mersedes: return "МЕРСЕДЕС";
+        case Brand::Mercedes: return "МЕРСЕДЕС"; 
         case Brand::BMW: return "BMW";
         case Brand::Skoda: return "ШКОДА";
-    };
-};
+        default: return "Неизвестный бренд";
+    }
+}
 
-string PrintBodyType(BodyType type)
-{
-    switch(type)
-    {
+string PrintBodyType(const BodyType type) {
+    switch (type) {
         case BodyType::Sedan: return "СЕДАН";
         case BodyType::Pickup: return "ПИКАП";
         case BodyType::Coupe: return "КУПЕ";
         case BodyType::Cabriolet: return "КАБРИОЛЕТ";
-    };
-};
+        default: return "Неизвестный тип";
+    }
+}
 
-string PrintPrice(Price price)
-{
-    switch(price)
-    {
+string PrintPrice(const Price price) {
+    switch (price) {
         case Price::Very_Low: return "ОЧЕНЬ ДЕШЕВАЯ";
         case Price::Low: return "ДЕШЕВАЯ";
         case Price::Medium: return "СРЕДНЯЯ ПО РЫНКУ";
-        case Price::High: return "ДОРОГО";
-        case Price::Very_High: return "ОЧЕНЬ ДОРОГО";
-    };
-};
-
-//factory method
-Car *CarFactory(BodyType newcar)
-{
-    switch(newcar)
-    {
-        case BodyType::Sedan: return new Sedan;
-        case BodyType::Pickup: return new Pickup;
-        case BodyType::Coupe: return new Coupe;
-        case BodyType::Cabriolet: return new Cabriolet;
+        case Price::High: return "ДОРОГАЯ";
+        case Price::Very_High: return "ОЧЕНЬ ДОРОГАЯ";
+        default: return "Неизвестная цена";
     }
-};
-// container methods
+}
 
-void DBCarContainer::ClearDB()
-{
+// Factory method to create cars based on BodyType
+Car* CarFactory(const BodyType type) {
+    switch (type) {
+        case BodyType::Sedan: return new Sedan();
+        case BodyType::Pickup: return new Pickup();
+        case BodyType::Coupe: return new Coupe();
+        case BodyType::Cabriolet: return new Cabriolet();
+        default: throw invalid_argument("Unknown BodyType");
+    }
+}
+
+// Class methods for managing car database
+void DBCarContainer::ClearDB() {
     char *errmsg;
-    sqlite3_exec(DB,"DELETE FROM Cars", NULL, NULL, &errmsg);
-};
+    if (sqlite3_exec(DB, "DELETE FROM Cars", NULL, NULL, &errmsg) != SQLITE_OK) {
+        cerr << "Error clearing database: " << errmsg << endl;
+        sqlite3_free(errmsg);
+    }
+}
 
-void DBCarContainer::AddCar(CarPointer newCar)
-{
+void DBCarContainer::AddCar(CarPointer newCar) {
     sqlite3_stmt* stmt;
-    string bodytype = PrintBodyType(newCar->GetTypeOfCar());
-    string brandofcar = PrintBrand(newCar->GetBrandOfCar());
-    string priceofcar = PrintPrice(newCar->GetPriceOfCar());
-    int probegofcar = newCar->GetProbegOfCar();
-    string sql = "INSERT INTO Cars (BodyType,Brand,Price,Probeg)"
-                            "VALUES (:type,:brand,:price, :probeg);";
-    sqlite3_prepare_v2(DB, sql.c_str(), -1, &stmt, NULL);
-    sqlite3_bind_text(stmt, sqlite3_bind_parameter_index(stmt, ":type"), bodytype.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, sqlite3_bind_parameter_index(stmt, ":brand"), brandofcar.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, sqlite3_bind_parameter_index(stmt, ":price"), priceofcar.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, sqlite3_bind_parameter_index(stmt, ":probeg"), probegofcar);
-    sqlite3_step(stmt);
+    string sql = "INSERT INTO Cars (BodyType, Brand, Price, Probeg) VALUES (?, ?, ?, ?);";
+    if (sqlite3_prepare_v2(DB, sql.c_str(), -1, &stmt, NULL) != SQLITE_OK) {
+        cerr << "SQL error: " << sqlite3_errmsg(DB) << endl;
+        return;
+    }
+
+    // Bind values
+    sqlite3_bind_text(stmt, 1, PrintBodyType(newCar->GetTypeOfCar()).c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, PrintBrand(newCar->GetBrandOfCar()).c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 3, PrintPrice(newCar->GetPriceOfCar()).c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 4, newCar->GetProbegOfCar());
+
+    // Execute and finalize statement
+    if (sqlite3_step(stmt) != SQLITE_DONE) {
+        cerr << "Insert failed: " << sqlite3_errmsg(DB) << endl;
+    }
     sqlite3_finalize(stmt);
+}
 
-};
-
-//iterator methods
-
-void DBCarContainerIterator::First()
-{
+// Implementation for DBCarContainerIterator methods
+void DBCarContainerIterator::First() {
     sqlite3_stmt *stmt;
-    const char *sql = "SELECT ID FROM Cars ORDER BY ID ASC LIMIT 1;";
-    int rc = sqlite3_prepare_v2(DB, sql, -1, &stmt, nullptr);
-    rc = sqlite3_step(stmt);
-    CurrentId = sqlite3_column_int(stmt, 0);
+    if (sqlite3_prepare_v2(DB, "SELECT ID FROM Cars ORDER BY ID ASC LIMIT 1", -1, &stmt, nullptr) == SQLITE_OK && sqlite3_step(stmt) == SQLITE_ROW) {
+        CurrentId = sqlite3_column_int(stmt, 0);
+    }
     sqlite3_finalize(stmt);
 };
 
