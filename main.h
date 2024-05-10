@@ -1,298 +1,106 @@
-#ifndef CARS_H
-#define CARS_H
+#ifndef Cars_SQL_H
 
-#include <iostream>
+#include "sqlite3.h"
 #include <string>
-#include <vector>
 
 using namespace std;
 
-template<class Type>
-class Iterator
-{
-    protected:
-        Iterator() {}
-    public:
-        virtual ~Iterator(){};
-        virtual void First() = 0 ;
-        virtual void Next() = 0;
-        virtual bool IsDone() const = 0;
-        virtual Type GetCurrent() const = 0;
-};
-
-// Перечислимый тип для типов кузова автомобиля
-enum class BodyType : int { Sedan, Pickup, Coupe, Cabriolet };
-
-// Перечислимый тип для марок автомобиля
-enum class Brand : int { Volvo, Mersedes, BMW, Skoda };
-
-// Перечислимый тип для ценовых категорий автомобиля
-enum class Price : int { Very_Low, Low, Medium, High, Very_High };
-
-// Класс-родитель Car
+//перечисления параметров
+enum class BodyType : int {Sedan, Pickup, Coupe, Cabriolet};
+enum class Brand : int {Volvo, Mersedes, BMW, Skoda};
+enum class Price : int {Very_Low, Low, Medium, High, Very_High};
+//общий класс
 class Car
 {
-protected:
-    BodyType TypeOfCar;  // Тип кузова автомобиля
-    Brand BrandOfCar;    // Марка автомобиля
-    Price PriceOfCar;    // Ценовая категория автомобиля
-
-    // Конструктор по умолчанию
-    Car()
-    {
-        PriceOfCar = Price(rand() % 5);  // Случайная генерация ценовой категории
-        BrandOfCar = Brand(rand() % 4);  // Случайная генерация марки автомобиля
-    }
-
-public:
-    // Виртуальный метод для получения типа кузова автомобиля
-    virtual BodyType GetTypeOfCar() const = 0;
-
-    // Метод для получения марки автомобиля
-    Brand GetBrandOfCar() { return BrandOfCar; }
-
-    // Метод для получения ценовой категории автомобиля
-    Price GetPriceOfCar() { return PriceOfCar; }
-
-    // Метод для получения пробега автомобиля (случайная генерация)
-    int GetProbegOfCar()
-    {
-        int probeg = rand() / 10000;
-        return probeg;
-    }
+    protected:
+        BodyType TypeOfCar;
+        Brand BrandOfCar;
+        Price PriceOfCar;
+        Car()
+        {
+            PriceOfCar = Price(rand()%5);
+            BrandOfCar = Brand(rand()%4);
+        };
+    public:
+        virtual BodyType GetTypeOfCar() const = 0;
+        Brand GetBrandOfCar() {return BrandOfCar;};
+        Price GetPriceOfCar() {return PriceOfCar;};
+        int GetProbegOfCar()
+        {
+            int probeg = rand()/10000;
+            return probeg;
+        };
 };
 
 typedef Car * CarPointer;
 
-// Класс Cabriolet, наследуемый от класса Car
-class Cabriolet : public Car
-{
-public:
-    BodyType GetTypeOfCar() const { return BodyType::Cabriolet; }
-};
-
-// Класс Coupe, наследуемый от класса Car
-class Coupe : public Car
-{
-public:
-    BodyType GetTypeOfCar() const { return BodyType::Coupe; }
-};
-
-// Класс Pickup, наследуемый от класса Car
-class Pickup : public Car
-{
-public:
-    BodyType GetTypeOfCar() const { return BodyType::Pickup; }
-};
-
-// Класс Sedan, наследуемый от класса Car
-class Sedan : public Car
-{
-public:
-    BodyType GetTypeOfCar() const { return BodyType::Sedan; }
-};
-
-class CarContainer
-{
-public:
-    // Виртуальный метод для добавления автомобиля в коллекцию
-    virtual void AddCar(CarPointer newcar) = 0;
-
-    // Виртуальный метод для получения количества автомобилей в коллекции
-    virtual int GetCount() const = 0;
-};
-
-
-class CarListIterator : public Iterator<CarPointer>
+class DBCarContainer
 {
     private:
-        const CarPointer *CarPark;
-        int Pos;
-        int Count;
+        sqlite3* DB;
     public:
-        CarListIterator(const CarPointer *carpark, int count)
+        DBCarContainer(const string& DB_path)
         {
-            CarPark = carpark;
-            Count = count;
-            Pos = 0;
+            sqlite3_open(DB_path.c_str(), &DB);
+            string createtable = "CREATE TABLE Cars ("
+                                "ID INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                "BodyType TEXT NOT NULL,"
+                                "Brand TEXT,"
+                                "Price TEXT,"
+                                "Probeg INTEGER"
+                                ");";
+            char *errMsg;
+            sqlite3_exec(DB, createtable.c_str(), nullptr, nullptr, &errMsg);
+            cout << errMsg << "\n";
         };
-        void First() { Pos = 0; }
-        void Next() {Pos++;}
-        bool IsDone() const {return Pos >= Count;}
-        CarPointer GetCurrent() const { return CarPark[Pos];}
+        void AddCar(CarPointer newCar);
+        void ClearDB();
+        sqlite3* GetDB() {return DB;}
 };
 
-class CarListContainer : public CarContainer
+class DBCarContainerIterator
 {
     private:
-        CarPointer * CarPark;
-        int CarCount;
-        int MaxSize;
+        int CurrentId;
+        sqlite3* DB;
     public:
-        CarListContainer(int MaxSize);
-        virtual ~CarListContainer();
-        void AddCar(CarPointer newcar);
-        int GetCount() const {return CarCount;}
-        CarPointer GetByIndex(int index) const {return CarPark[index];}
-        Iterator<CarPointer> * GetIterator()
+        DBCarContainerIterator(sqlite3* db)
         {
-            return new CarListIterator(CarPark, CarCount);
+            DB = db;
         };
+        void First();
+        int GetCount();
+        string GetBrand();
+        string GetType();
+        int GetProbeg();
+        string GetPrice();
+        void Next() {CurrentId++;};
 };
 
-class CarVectorIterator : public Iterator<CarPointer>
+class Decorator
 {
     private:
-        const vector<CarPointer> * CarPark;
-        vector<CarPointer>::const_iterator it;
+        string Target;
+        string Current;
+        bool IsCorrect;
     public:
-        CarVectorIterator( const vector<CarPointer> * carpark)
+        Decorator(string current)
         {
-            CarPark = carpark;
-            it = CarPark->begin();
+            Current = current;
+            IsCorrect  = true;
         };
-        void First() { it = CarPark->begin();}
-        void Next() {it++;}
-        bool IsDone() const {return it == CarPark->end();}
-        CarPointer GetCurrent() const {return *it;}
-
-};
-
-class CarVectorContainer : public CarContainer
-{
-    private:
-        vector<CarPointer> CarPark;
-    public:
-        void AddCar(CarPointer newcar) {CarPark.push_back(newcar);}
-        int GetCount() const {return CarPark.size();}
-        Iterator<CarPointer> * GetIterator()
+        void Find(string target)
         {
-            return new CarVectorIterator(&CarPark);
-        };
-};
-
-template<class Type>
-class Decorator : public Iterator<Type>
-{
-    protected:
-        Iterator<Type> *It;
-    public:
-        Decorator (Iterator<Type> *it)
-        {
-            It = it;
-        }
-        virtual ~Decorator() {delete It;}
-        void First() {It->First();}
-        void Next() {It->Next();}
-        bool IsDone() const {return It->IsDone();}
-        Type GetCurrent() const { return It->GetCurrent(); }
-};
-
-class DecoratorBrand : public Decorator<CarPointer>
-{
-    private:
-        Brand TargetBrand;
-    public:
-        DecoratorBrand(Iterator<CarPointer> *it, Brand targetbrand) : Decorator(it)
-        {
-            TargetBrand = targetbrand;
-        };
-        void First()
-        {
-            It->First();
-            while(!It->IsDone() && It->GetCurrent()->GetBrandOfCar() != TargetBrand)
+            Target = target;
+            if (Current == Target)
             {
-                It->Next();
+                IsCorrect = true;
+            }
+            else
+            {
+                IsCorrect = false;
             }
         };
-        void Next()
-        {
-            do
-            {
-                It->Next();
-
-            }while(!It->IsDone() && It->GetCurrent()->GetBrandOfCar()!= TargetBrand);
-        };
+        bool GetCorrect() {return IsCorrect;}
 };
-
-class DecoratorPrice : public Decorator<CarPointer>
-{
-    private:
-        Price TargetPrice;
-    public:
-        DecoratorPrice(Iterator<CarPointer> *it, Price targetprice) : Decorator(it)
-        {
-            TargetPrice = targetprice;
-        };
-        void First()
-        {
-            It->First();
-            while(!It->IsDone() && It-> GetCurrent()->GetPriceOfCar() != TargetPrice)
-            {
-                It->Next();
-            }
-        };
-        void Next()
-        {
-            do
-            {
-                It->Next();
-
-            }while(!It->IsDone() && It->GetCurrent()->GetPriceOfCar()!= TargetPrice);
-        };
-};
-
-class DecoratorType : public Decorator<CarPointer>
-{
-    private:
-        BodyType TargetType;
-    public:
-        DecoratorType(Iterator<CarPointer> *it, BodyType targettype) : Decorator(it)
-        {
-            TargetType = targettype;
-        };
-        void First()
-        {
-            It->First();
-            while(!It->IsDone() && It->GetCurrent()->GetTypeOfCar() != TargetType)
-            {
-                It->Next();
-            }
-        };
-        void Next()
-        {
-            do
-            {
-                It->Next();
-
-            }while(!It->IsDone() && It->GetCurrent()->GetTypeOfCar()!= TargetType);
-        };
-};
-// ммм. Декоратор 
-class DecoratorProbeg : public Decorator<CarPointer>
-{
-    private:
-        int TargetProbeg;
-    public:
-        DecoratorProbeg(Iterator<CarPointer> *it, int targetprobeg) : Decorator(it)
-        {
-            TargetProbeg = targetprobeg;
-        };
-        void First()
-        {
-            It->First();
-            while(!It->IsDone() && It-> GetCurrent()->GetProbegOfCar() > TargetProbeg)
-            {
-                It->Next();
-            }
-        };
-        void Next()
-        {
-            do
-            {
-                It->Next();
-
-            }while(!It->IsDone() && It->GetCurrent()->GetProbegOfCar() > TargetProbeg);
-        };
-};
-#endif CARS_H
+#endif Cars_SQL_H

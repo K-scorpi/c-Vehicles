@@ -1,40 +1,36 @@
 #include <iostream>
-#include <vector>
-#include <list>
+#include <string>
+#include "sqlite3.h"
 #include "main.h"
 
 using namespace std;
 
-void CarListContainer::AddCar(CarPointer newcar)
+// определение классов
+class Cabriolet : public Car
 {
-    CarPark[CarCount] = newcar;
-    CarCount++;
-}
-
-CarListContainer::CarListContainer(int maxsize)
-{
-    CarPark = new CarPointer[maxsize];
-    for (int i=0; i<maxsize; i++)
-    {
-        CarPark[i] = NULL;
-    };
-    CarCount = 0;
-    MaxSize = maxsize;
+    public:
+        BodyType GetTypeOfCar() const {return BodyType::Cabriolet;}
 };
 
-CarListContainer::~CarListContainer()
+class Coupe : public Car
 {
-    for (int i=0; i<MaxSize; i++)
-    {
-        if (CarPark[i] != NULL)
-        {
-            delete CarPark[i];
-            CarPark[i] = NULL;
-        };
-    };
-    delete[] CarPark;
+    public:
+        BodyType GetTypeOfCar() const {return BodyType::Coupe;}
 };
 
+class Pickup : public Car
+{
+    public:
+        BodyType GetTypeOfCar() const {return BodyType::Pickup;}
+};
+
+class Sedan : public Car
+{
+    public:
+        BodyType GetTypeOfCar() const {return BodyType::Sedan;}
+};
+
+//prints
 string PrintBrand(const Brand brand)
 {
     switch (brand)
@@ -69,20 +65,7 @@ string PrintPrice(Price price)
     };
 };
 
-void Task(Iterator<CarPointer> *it)
-{
-    for (it->First(); !it->IsDone(); it->Next())
-    {
-        const CarPointer currentcar = it->GetCurrent();
-        cout << "~~~~~~~~~~~~~~~~~~~~~~~~~~" << "\n";
-        cout << "ХАРАКТЕРИСТИКИ МАШИНЫ:" << "\n";
-        cout << "- Производитель: " << PrintBrand(currentcar->GetBrandOfCar()) << "\n";
-        cout << "- Тип кузова: " << PrintBodyType(currentcar->GetTypeOfCar()) << "\n";
-        cout << "- Пробег: " << currentcar->GetProbegOfCar() << " км" <<"\n";
-        cout << "- Стоимость: " << PrintPrice(currentcar->GetPriceOfCar()) << "\n";
-    }
-}
-
+//factory method
 Car *CarFactory(BodyType newcar)
 {
     switch(newcar)
@@ -92,28 +75,130 @@ Car *CarFactory(BodyType newcar)
         case BodyType::Coupe: return new Coupe;
         case BodyType::Cabriolet: return new Cabriolet;
     }
-}
+};
+// container methods
+
+void DBCarContainer::ClearDB()
+{
+    char *errmsg;
+    sqlite3_exec(DB,"DELETE FROM Cars", NULL, NULL, &errmsg);
+};
+
+void DBCarContainer::AddCar(CarPointer newCar)
+{
+    sqlite3_stmt* stmt;
+    string bodytype = PrintBodyType(newCar->GetTypeOfCar());
+    string brandofcar = PrintBrand(newCar->GetBrandOfCar());
+    string priceofcar = PrintPrice(newCar->GetPriceOfCar());
+    int probegofcar = newCar->GetProbegOfCar();
+    string sql = "INSERT INTO Cars (BodyType,Brand,Price,Probeg)"
+                            "VALUES (:type,:brand,:price, :probeg);";
+    sqlite3_prepare_v2(DB, sql.c_str(), -1, &stmt, NULL);
+    sqlite3_bind_text(stmt, sqlite3_bind_parameter_index(stmt, ":type"), bodytype.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, sqlite3_bind_parameter_index(stmt, ":brand"), brandofcar.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, sqlite3_bind_parameter_index(stmt, ":price"), priceofcar.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, sqlite3_bind_parameter_index(stmt, ":probeg"), probegofcar);
+    sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+
+};
+
+//iterator methods
+
+void DBCarContainerIterator::First()
+{
+    sqlite3_stmt *stmt;
+    const char *sql = "SELECT ID FROM Cars ORDER BY ID ASC LIMIT 1;";
+    int rc = sqlite3_prepare_v2(DB, sql, -1, &stmt, nullptr);
+    rc = sqlite3_step(stmt);
+    CurrentId = sqlite3_column_int(stmt, 0);
+    sqlite3_finalize(stmt);
+};
+
+int DBCarContainerIterator::GetCount()
+{
+    sqlite3_stmt* stmt;
+    int result = sqlite3_prepare_v2(DB, "SELECT COUNT(*) FROM Cars", -1, &stmt, 0);
+    result = sqlite3_step(stmt);
+    int count = sqlite3_column_int(stmt, 0);
+    sqlite3_finalize(stmt);
+    return count;
+};
+
+string DBCarContainerIterator::GetBrand()
+{
+    sqlite3_stmt* stmt;
+    const char *sql_brand = "SELECT Brand FROM Cars WHERE ID = ?;";
+    int rc = sqlite3_prepare_v2(DB, sql_brand, -1, &stmt, nullptr);
+    sqlite3_bind_int(stmt, 1, CurrentId);
+    rc = sqlite3_step(stmt);
+    string OurBrand = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+    sqlite3_finalize(stmt);
+    return OurBrand;
+};
+
+string DBCarContainerIterator::GetType()
+{
+    sqlite3_stmt* stmt;
+    const char *sql_type = "SELECT BodyType FROM Cars WHERE ID = ?;";
+    int rc = sqlite3_prepare_v2(DB, sql_type, -1, &stmt, nullptr);
+    sqlite3_bind_int(stmt, 1, CurrentId);
+    rc = sqlite3_step(stmt);
+    string OurType = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+    sqlite3_finalize(stmt);
+    return OurType;
+};
+
+int DBCarContainerIterator::GetProbeg()
+{
+    sqlite3_stmt* stmt;
+    const char *sql_probeg = "SELECT Probeg FROM Cars WHERE ID = ?;";
+    int rc = sqlite3_prepare_v2(DB, sql_probeg, -1, &stmt, nullptr);
+    sqlite3_bind_int(stmt, 1, CurrentId);
+    rc = sqlite3_step(stmt);
+    int OurProbeg = sqlite3_column_int(stmt, 0);
+    sqlite3_finalize(stmt);
+    return OurProbeg;
+};
+
+string DBCarContainerIterator::GetPrice()
+{
+    sqlite3_stmt* stmt;
+    const char *sql_price = "SELECT Price FROM Cars WHERE ID = ?;";
+    int rc = sqlite3_prepare_v2(DB, sql_price, -1, &stmt, nullptr);
+    sqlite3_bind_int(stmt, 1, CurrentId);
+    rc = sqlite3_step(stmt);
+    string OurPrice = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0));
+    sqlite3_finalize(stmt);
+    return OurPrice;
+};
+
 int main()
 {
     srand(time(NULL));
-    //CarListContainer CarPark(100);
-    CarVectorContainer CarPark;
-    /*
-    for (int i = 0; i<15; i++)
+    DBCarContainer parking("car.db");
+    parking.ClearDB();
+    int random_amount_of_cars = random()%(100-15+1)+2;
+    cout << "Генерируем " << random_amount_of_cars << " машин" << "\n";
+    for (int i=0; i<random_amount_of_cars; i++)
     {
-        CarPark.AddCar(new Sedan);
+        parking.AddCar(CarFactory(BodyType(rand()%3)));
     };
-    for (int i = 0; i<15; i++ )
+    DBCarContainerIterator it(parking.GetDB());
+
+    it.First();
+    for (int i = 0; i<it.GetCount(); i++)
     {
-        CarPark.AddCar(new Cabriolet);
+        Decorator check_brand(it.GetBrand());
+        check_brand.Find("ВОЛЬВО");
+        if (check_brand.GetCorrect() == true)
+        {
+            cout << "Тип машины: " << it.GetType() << "\n";
+            cout << "Бренд: " << it.GetBrand() << "\n";
+            cout << "Стоимость: " << it.GetPrice() << "\n";
+            cout << "Пробег: " << it.GetProbeg() << " км\n";
+
+        }
+        it.Next();
     }
-    */
-    int random_cars = random()%(200-15+1)+1;
-    cout << "Создаем " << random_cars << " машин" << "\n"; 
-    for (int i=0; i<random_cars; i++)
-    {
-        CarPark.AddCar(CarFactory(BodyType(rand()%4)));
-    }
-    Iterator<CarPointer> *it = new DecoratorPrice(new DecoratorBrand(CarPark.GetIterator(), Brand::Skoda), Price::Medium);
-    Task(it);
-};
+}
